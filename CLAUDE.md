@@ -1,6 +1,13 @@
-# bankread — lecture seule des comptes, et le brief qui prévient avant
+# openbanking-mcp — lecture seule des comptes, et le brief qui prévient avant
 
-Outil personnel, publié tel quel. Deux choses, et rien d'autre : lire ses comptes
+**Le dépôt s'appelle `openbanking-mcp`, la commande s'appelle `bankread`**, et les chemins
+de configuration suivent la commande (`~/.config/bankread`, trousseau
+`bankread-enablebanking`). Le nom du dépôt dit ce que c'est — c'est comme ça qu'on le
+trouve — le nom de la commande dit ce qu'on en fait. Ne pas « harmoniser » : renommer la
+commande toucherait le dossier de configuration, le trousseau, l'agent launchd et toute
+déclaration MCP existante, pour rien.
+
+Outil personnel, publié tel quel (MIT, dépôt public). Deux choses, et rien d'autre : lire ses comptes
 bancaires par la DSP2 (agrément AIS, **jamais** d'initiation de paiement), et en tirer un
 brief quotidien qui pose quelques tâches Todoist.
 
@@ -118,12 +125,43 @@ observée.
 site de sa banque. `bankread doctor` prévient à J-14, pas à J-1 où un week-end suffirait à tout
 périmer. Et chaque renouvellement rouvre la fenêtre d'or : `link` en profite tout seul.
 
+## Où vit quoi
+
+```
+bankread                 lanceur de 4 lignes — pour que ./bankread marche depuis un clone
+bankreadlib/cli.py       le vrai programme (argparse, parcours de liaison, affichages)
+bankreadlib/provider.py  le contrat en Protocol + la fabrique : QUI va chercher la donnée
+bankreadlib/enablebanking.py, gocardless.py   les deux seuls fichiers qui nomment un fournisseur
+bankreadlib/rs256.py     signature JWT sans dépendance
+bankreadlib/read.py      la politique : quand se taire
+bankreadlib/ledger.py, recurring.py           l'accumulation et la détection
+bankreadlib/demo.py      un compte fictif, pour montrer avant de faire signer
+bankreadlib/mcp.py       le serveur MCP (JSON-RPC à la main)
+```
+
+`pyproject.toml` rend le tout installable (`pipx`, `uvx`) — le point d'entrée pointe sur
+le MÊME `main()` que le lanceur, il n'y a pas deux chemins de code à garder d'accord.
+
+## `bankread demo` est aussi un test qui se regarde
+
+Compte inventé dans un dossier temporaire, 400 jours d'historique fabriqué, **vraie**
+détection et **vraie** projection dessus. Deux invariants tenus par les tests : rien ne
+s'écrit hors du magasin jetable, et le scénario est calé sur la date d'exécution pour
+montrer tous les jours le cas qui vaut la peine (le loyer laisse au-dessus, les impôts
+font passer dessous). Une démonstration qui dirait « tout va bien » la moitié du mois
+serait vraie et inutile — c'est déjà ce que la banque sait faire.
+
 ## Tests
 
 ```bash
 python3 test_bankread.py
 ```
 
-51 tests, stdlib seule, aucun réseau. Ils vérifient surtout **les cas où le code doit se
+La CI (GitHub Actions) les rejoue sur ubuntu ET macOS, en 3.11/3.12/3.13, plus un job qui
+construit le paquet et lance la commande installée. macOS est la cible principale
+(trousseau, launchd) ; Linux gagne sa place en prouvant le repli — sans le binaire
+`security`, `store.py` retombe sur les variables d'environnement.
+
+59 tests, stdlib seule, aucun réseau. Ils vérifient surtout **les cas où le code doit se
 taire**. Une détection qui se trompe de date ne plante pas : elle annonce les impôts le 12
 au lieu du 15, avec le même aplomb.

@@ -115,12 +115,21 @@ poussées, ne se rattrapent pas.
    a pas de raison de la perdre ; mais un `README.en.md` court, factuel, décide de qui
    peut s'en servir.
 
-### Packaging (pas fait, et pas urgent)
+### Packaging
 
-`pipx install bankread` ou `uvx bankread` supposent un `pyproject.toml` et un point
-d'entrée — donc de déplacer le script `bankread` dans le paquet. Zéro dépendance rend
-l'opération triviale le jour où quelqu'un d'autre l'installe. Le nom
-`bankread` était libre sur PyPI au 2026-08-20 (l'API y répond 404).
+✅ `pyproject.toml` en place, sans aucune dépendance d'exécution. Trois façons de le
+lancer, vérifiées :
 
-Avant ça, `git clone` + `./bankread` suffit, et c'est honnête : un outil qui lit des
-comptes bancaires se lit avant de s'installer.
+```bash
+git clone https://github.com/Beennnn/openbanking-mcp && cd openbanking-mcp && ./bankread demo
+uvx --from git+https://github.com/Beennnn/openbanking-mcp bankread doctor
+pipx install git+https://github.com/Beennnn/openbanking-mcp
+```
+
+`uvx` compte plus que les deux autres : c'est ainsi qu'un serveur MCP se distribue
+aujourd'hui — le client lance une commande, uvx la récupère et l'exécute sans rien
+installer à demeure. D'où le bloc `mcpServers` de la section 3, qui ne suppose aucun clone.
+
+Le paquet s'appelle `openbanking-mcp`, la commande reste `bankread`. Le nom était libre
+sur PyPI au 2026-08-20 ; rien n'y est publié pour l'instant, et l'installation depuis git
+suffit tant que personne ne le réclame.
