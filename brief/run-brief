@@ -1,0 +1,76 @@
+#!/bin/bash
+# run-brief — le brief de 7 h 30 : Gmail + banque → tâches Todoist.
+#
+# Lancé par launchd (launchd/install.sh), ou à la main pour voir ce qu'il ferait.
+# Tout ce qu'il raconte part dans logs/brief.log ; sa vraie sortie, ce sont les tâches.
+#
+# Ce script prépare le terrain — configuration MCP, liste d'outils, journal — puis passe
+# la main à un PILOTE, dans brief/agents/. Le pilote est la seule pièce qui sait quel
+# modèle on appelle et avec quels drapeaux ; tout le reste est du MCP standard.
+#
+# La séparation n'est pas décorative : bankread lit des comptes bancaires, ce qui n'a
+# aucun rapport avec l'IA. Le jour où le brief change de modèle — ou s'en passe — rien
+# d'autre ne bouge. `BANKREAD_AGENT=aucun brief/run-brief` le vérifie en une commande.
+#
+# La liste d'outils ci-dessous est FERMÉE, et c'est le point. Ce script tourne sans
+# personne pour répondre à une demande d'autorisation : ce qui n'est pas listé ne peut
+# pas arriver, plutôt que de bloquer le brief en attendant un clic qui ne viendra pas.
+# Aucun outil d'écriture Gmail n'y figure — le brief lit le courrier, il n'y répond jamais.
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+BRIEF="$REPO/brief"
+LOGS="$REPO/logs"
+mkdir -p "$LOGS"
+
+# Le fichier MCP porte le chemin du dépôt ; on le résout à la volée plutôt que de
+# committer un chemin absolu propre à cette machine.
+MCP="$(mktemp -t bankread-mcp)"
+CONSIGNES="$(mktemp -t bankread-brief)"
+trap 'rm -f "$MCP" "$CONSIGNES"' EXIT
+sed "s|__REPO__|$REPO|g" "$BRIEF/mcp.json" > "$MCP"
+
+# Les consignes = la partie générique, versionnée, PLUS les réglages locaux qui ne le
+# sont pas : chez qui on achète, où on a ses comptes, ce qu'on appelle un solde bas.
+# C'est cette séparation qui permet de publier le dépôt sans publier une biographie —
+# et le brief le dit lui-même s'il ne trouve pas la section locale, plutôt que de partir
+# chercher au hasard dans une boîte mail.
+cat "$BRIEF/brief.md" > "$CONSIGNES"
+if [ -f "$BRIEF/brief.local.md" ]; then
+  cat "$BRIEF/brief.local.md" >> "$CONSIGNES"
+else
+  echo "⚠ brief/brief.local.md absent — le brief ne saura pas quoi chercher." >&2
+  echo "  Copie brief/brief.local.example.md et remplis-le." >&2
+fi
+
+OUTILS=(
+  "mcp__bankread__banque_sante"
+  "mcp__bankread__banque_comptes"
+  "mcp__bankread__banque_soldes"
+  "mcp__bankread__banque_echeances"
+  "mcp__bankread__banque_projection"
+  "mcp__bankread__banque_transactions"
+  "mcp__Gmail__search_threads"
+  "mcp__Gmail__get_thread"
+  "mcp__Todoist__find-tasks"
+  "mcp__Todoist__find-projects"
+  "mcp__Todoist__add-tasks"
+  "Read"
+  "Write"
+)
+
+echo "───────── $(date '+%Y-%m-%d %H:%M:%S') ─────────"
+
+# Joint par des virgules plutôt que passé en liste : `--allowedTools` est variadique,
+# et une liste suivie d'un autre drapeau dépend de l'analyseur d'arguments pour savoir
+# où elle s'arrête. Un seul argument ne laisse aucune place au doute.
+OUTILS_CSV="$(IFS=,; echo "${OUTILS[*]}")"
+
+PILOTE="$BRIEF/agents/${BANKREAD_AGENT:-claude}.sh"
+if [ ! -x "$PILOTE" ]; then
+  echo "✖ pilote introuvable : $PILOTE" >&2
+  echo "  disponibles : $(cd "$BRIEF/agents" && ls *.sh | sed 's/\.sh$//' | tr '\n' ' ')" >&2
+  exit 2
+fi
+
+exec "$PILOTE" "$CONSIGNES" "$MCP" "$OUTILS_CSV"

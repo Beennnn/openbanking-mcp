@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.bankread.brief-quotidien</string>
+    <!-- bash -lc pour que le PATH du profil s'applique : sous launchd il se limite à
+         /usr/bin:/bin:/usr/sbin:/sbin, où `claude` n'est pas. Un `which claude` qui
+         répond dans un terminal ne prouve donc RIEN sur ce que verra l'agent. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-lc</string>
+        <string>exec '__REPO__/brief/run-brief'</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+    <!-- Pas de KeepAlive : ce n'est pas un service, c'est un rendez-vous quotidien.
+         launchd rattrape le tir si le Mac dormait à 7 h 30, ce qui est le comportement
+         voulu — un brief en retard vaut mieux qu'un brief sauté. -->
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>__REPO__/logs/brief.log</string>
+    <key>StandardErrorPath</key>
+    <string>__REPO__/logs/brief.log</string>
+</dict>
+</plist>

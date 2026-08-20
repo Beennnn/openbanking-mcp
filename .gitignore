@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+logs/
+
+# Les réglages propres à une personne : marchands, banques, seuils, projet Todoist.
+# Le dépôt est public ; ceci ne l'est pas. Modèle : brief/brief.local.example.md
+brief/brief.local.md
