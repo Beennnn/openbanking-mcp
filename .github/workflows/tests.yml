@@ -1,0 +1,46 @@
+# Les tests, sur chaque poussée. Ils tiennent en une seconde, n'ont aucune dépendance et
+# ne touchent pas le réseau : il n'y a aucune raison de ne pas les faire tourner partout.
+#
+# macOS EST une cible à part entière, pas un luxe : les secrets vivent dans le trousseau
+# et le brief tourne sous launchd. Mais Linux compte tout autant — le lecteur de comptes
+# doit pouvoir tourner sur un petit serveur, et c'est `security` absent qui le prouve
+# (store.py retombe alors sur les variables d'environnement, et les tests le vérifient).
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python test_bankread.py
+
+  # Le paquet doit rester constructible : `uvx` est la façon dont un serveur MCP se
+  # distribue, et un pyproject cassé ne se voit qu'au moment où quelqu'un essaie.
+  paquet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install --quiet build
+      - run: python -m build
+      - run: pip install --quiet dist/*.whl
+      - run: bankread doctor || test $? -eq 1   # 1 = « rien de lié », le seul état possible ici

@@ -18,13 +18,13 @@ import tempfile
 import unittest
 import urllib.error
 from unittest import mock
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
 sys.path.insert(0, str(ICI))
 
-from bankreadlib import enablebanking, ledger, provider, read, recurring, rs256  # noqa: E402
+from bankreadlib import cli, enablebanking, ledger, provider, read, recurring, rs256  # noqa: E402
 from bankreadlib.erreurs import ApiError, RateLimited  # noqa: E402
 from bankreadlib.store import Store  # noqa: E402
 
@@ -705,6 +705,40 @@ class TestChoixDuFournisseur(unittest.TestCase):
         fournisseur devra implémenter autre chose que ce que le README promet."""
         self.assertTrue(isinstance(enablebanking.Api(MagasinFactice()),
                                    provider.Fournisseur))
+
+
+class TestDureeDeConsentement(unittest.TestCase):
+    """Ce qu'on enregistre, c'est ce que la banque a ACCORDÉ.
+
+    On demande six mois, la banque en donne trois : l'écart est courant. Recopier la
+    demande ferait annoncer un consentement en bonne santé deux mois après sa mort —
+    une date verte que personne n'a observée.
+    """
+
+    def _session(self, fin: str) -> dict:
+        return {"access": {"valid_until": fin}}
+
+    def test_c_est_la_duree_accordee_qui_est_lue(self):
+        fin = datetime.now(timezone.utc) + timedelta(days=92)
+        self.assertEqual(cli._jours_restants(self._session(fin.isoformat())), 92)
+
+    def test_le_z_de_l_heure_zoulou_est_accepte(self):
+        """Certaines réponses écrivent 2026-11-20T08:00:00Z, que `fromisoformat`
+        refusait avant Python 3.11 et refuse encore si on ne le traduit pas."""
+        fin = (datetime.now(timezone.utc) + timedelta(days=30)).replace(microsecond=0)
+        zoulou = fin.isoformat().replace("+00:00", "Z")
+        self.assertEqual(cli._jours_restants(self._session(zoulou)), 30)
+
+    def test_un_consentement_expire_ne_rend_pas_un_nombre_negatif(self):
+        fin = datetime.now(timezone.utc) - timedelta(days=5)
+        self.assertEqual(cli._jours_restants(self._session(fin.isoformat())), 0)
+
+    def test_une_date_illisible_rend_None_et_surtout_pas_zero(self):
+        """La nuance qui compte : `None` veut dire « je ne sais pas » et laisse
+        l'appelant retomber sur la durée demandée. `0` voudrait dire « expiré
+        aujourd'hui » et ferait renvoyer signer un consentement tout neuf."""
+        self.assertIsNone(cli._jours_restants({"access": {"valid_until": "bientôt"}}))
+        self.assertIsNone(cli._jours_restants({}))
 
 
 if __name__ == "__main__":

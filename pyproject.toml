@@ -1,0 +1,43 @@
+# Empaquetage — pour `pipx install`, `uv tool install`, et surtout `uvx`, qui est la
+# façon dont un serveur MCP se distribue aujourd'hui : le client MCP lance la commande,
+# uvx la récupère et l'exécute sans rien installer à demeure.
+#
+# AUCUNE dépendance d'exécution, et ce n'est pas un oubli : `dependencies = []` est une
+# promesse du dépôt (voir CLAUDE.md). Un outil qui touche à de l'argent et qui doit
+# démarrer sans faute tous les matins n'a pas besoin d'une chaîne de mises à jour tierces.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openbanking-mcp"
+version = "1.0.0"
+description = "Read your own bank accounts over Open Banking (PSD2/AIS, read-only) and warn before the debit lands — MCP server + CLI, zero dependencies."
+readme = "README.en.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Beennnn" }]
+keywords = ["mcp", "open-banking", "psd2", "banking", "personal-finance", "enable-banking"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Beennnn/openbanking-mcp"
+Source = "https://github.com/Beennnn/openbanking-mcp"
+
+# La commande garde son nom : le dépôt dit ce que c'est, la commande dit ce qu'on en
+# fait. `~/.config/bankread` et le service de trousseau suivent la commande.
+[project.scripts]
+bankread = "bankreadlib.cli:main"
+
+[tool.setuptools]
+packages = ["bankreadlib"]
