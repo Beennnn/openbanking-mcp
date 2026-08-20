@@ -84,4 +84,4 @@ must stay silent.
 
 ## Licence
 
-[0BSD](LICENSE) — permissive, no conditions at all, not even attribution.
+[MIT](LICENSE) — do what you want with it; keep the notice.

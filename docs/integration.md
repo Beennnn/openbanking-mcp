@@ -99,8 +99,10 @@ poussées, ne se rattrapent pas.
    suffisait pas. L'historique a été remplacé par un commit unique au moment de
    l'ouverture. À refaire de tête à chaque fois que le dépôt redevient public après une
    phase privée.
-3. **Une licence.** ✅ 0BSD : permissive et **sans contrainte** — pas même l'obligation
-   de citer l'auteur, contrairement à MIT. Sans licence du tout, « public » voudrait dire
+3. **Une licence.** ✅ MIT. Permissive, et surtout **la plus courante** : sur un dépôt
+   qu'on publie pour être repris, la familiarité de la licence vaut mieux que sa
+   perfection juridique — un lecteur la reconnaît sans la lire. Sa seule condition est de
+   conserver la mention de copyright. Sans licence du tout, « public » voudrait dire
    « visible », pas « réutilisable ».
 4. **Dire ce que l'outil ne peut pas faire**, en tête de README ✅ : agrément AIS, aucune
    initiation de paiement, secrets dans le trousseau, registre en clair sur le disque.
