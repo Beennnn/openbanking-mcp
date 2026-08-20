@@ -1,4 +1,9 @@
-# `bankread` — read your accounts, and warn you BEFORE the debit lands
+# `openbanking-mcp` — read your accounts, and warn you BEFORE the debit lands
+
+> **The repo is `openbanking-mcp`, the command is `bankread`.** The repo name says what
+> this is — an MCP server on top of Open Banking — because that is how people find it.
+> The command name says what you do with it, and `bankread doctor` types better than
+> `openbanking-mcp doctor`. Config paths follow the command, not the repo.
 
 Read-only access to your own bank accounts over PSD2 (AIS licence), plus a daily brief.
 Python 3.11+, **no third-party dependencies**: `urllib` for HTTP, hand-written JSON-RPC

@@ -1,4 +1,11 @@
-# `bankread` — lire ses comptes, et prévenir AVANT
+# `openbanking-mcp` — lire ses comptes, et prévenir AVANT
+
+> **Le dépôt s'appelle `openbanking-mcp`, la commande s'appelle `bankread`.** Ce n'est
+> pas une inattention : le nom du dépôt dit ce que c'est — un serveur MCP au-dessus de
+> l'Open Banking — parce que c'est comme ça qu'on le trouve. Le nom de la commande dit ce
+> qu'on en fait, et `bankread doctor` se tape mieux que `openbanking-mcp doctor`. Les
+> chemins de configuration (`~/.config/bankread`, trousseau `bankread-enablebanking`)
+> suivent la commande, pas le dépôt.
 
 Lecture seule des comptes bancaires par la DSP2 (agrément AIS), plus un brief quotidien
 vers Todoist. Python 3.11+, **aucune dépendance tierce** : `urllib` pour l'HTTP, JSON-RPC
