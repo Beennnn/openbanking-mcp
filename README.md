@@ -79,6 +79,33 @@ Trois conséquences pratiques :
 
 ## Mise en route
 
+### Voir ce que ça fait, tout de suite
+
+```bash
+./bankread demo
+```
+
+Un compte inventé, 400 jours d'historique fabriqué, un solde imaginaire — et **la vraie
+détection et la vraie projection** qui tournent dessus. Rien n'est écrit hors d'un dossier
+temporaire.
+
+Ce que la démonstration montre, et qui est tout le propos :
+
+```
+    2026-08-23 ±3j    -890.00  →     394.55   Loyer …          [loyer]
+    2026-08-25 ±3j    -412.00  →     -17.45   Dgfip Impot …    [impots]
+    2026-08-29 ±3j    2450.00  →    2432.55   Salaire …
+
+  ⚠ passe sous 300 € le 2026-08-25 (-17.45 €), poussé par « Dgfip Impot Revenu »
+    (1 motif(s) incertain(s) non comptés — la vraie trajectoire peut être plus basse)
+```
+
+Le loyer laisse encore au-dessus du plancher ; ce sont **les impôts qui font passer
+dessous**, cinq jours avant le salaire. Ta banque le dira le 25 au matin. Et la dernière
+ligne est la plus importante : la taxe foncière n'est passée que deux fois dans
+l'historique, donc elle n'est pas crue, donc elle ne compte pas — et la projection
+annonce elle-même qu'elle est optimiste plutôt que de faire semblant.
+
 ### L'installer, ou pas
 
 Trois façons, dans l'ordre de l'engagement qu'elles demandent :
@@ -157,6 +184,7 @@ renouvellement, dans trois à six mois.
 | `bankread project` | **le croisement** : solde moins les échéances à venir, jour par jour |
 | `bankread tx` | les dernières opérations |
 | `bankread json` | tout d'un coup, pour un script |
+| `bankread demo` | **ce que ça donne, sur un compte FICTIF** — sans banque, sans inscription |
 | `bankread mcp` | serveur MCP sur stdio, six outils de lecture — pour Claude ou tout autre client MCP |
 
 Codes de sortie : 0 tout va bien, 1 il y a à regarder, 2 échec dur — pour que launchd

@@ -24,7 +24,7 @@ from pathlib import Path
 ICI = Path(__file__).resolve().parent
 sys.path.insert(0, str(ICI))
 
-from bankreadlib import cli, enablebanking, ledger, provider, read, recurring, rs256  # noqa: E402
+from bankreadlib import cli, demo, enablebanking, ledger, provider, read, recurring, rs256  # noqa: E402
 from bankreadlib.erreurs import ApiError, RateLimited  # noqa: E402
 from bankreadlib.store import Store  # noqa: E402
 
@@ -739,6 +739,67 @@ class TestDureeDeConsentement(unittest.TestCase):
         aujourd'hui » et ferait renvoyer signer un consentement tout neuf."""
         self.assertIsNone(cli._jours_restants({"access": {"valid_until": "bientôt"}}))
         self.assertIsNone(cli._jours_restants({}))
+
+
+class TestDemonstration(unittest.TestCase):
+    """`bankread demo` doit raconter la bonne histoire, et n'écrire nulle part ailleurs.
+
+    C'est aussi le test d'intégration le plus complet du dépôt : il part de 400 jours
+    d'opérations brutes et va jusqu'à la trajectoire, en passant par la détection de
+    cadences et le registre. Si un maillon casse, celui-ci le dit.
+    """
+
+    def _monte(self, racine: Path):
+        store = Store(config_dir=racine / "config", cache_dir=racine / "cache",
+                      data_dir=racine / "data")
+        return store, demo.monter(store)
+
+    def test_la_trajectoire_passe_sous_le_plancher_a_cause_des_impots(self):
+        """Le scénario est calé sur la date d'exécution pour que ce soit vrai tous les
+        jours : le loyer laisse au-dessus, les impôts font passer dessous."""
+        with tempfile.TemporaryDirectory() as d:
+            store, compte = self._monte(Path(d))
+            p = read.projection(None, store, compte, jours=45, plancher=300)
+            self.assertIsNotNone(p["franchissement"], "la démonstration doit montrer un creux")
+            self.assertIn("impot", p["franchissement"]["declencheur"].lower())
+
+    def test_l_annuelle_vue_deux_fois_sort_de_la_trajectoire(self):
+        """Deux passages sont une coïncidence : la taxe foncière est listée, marquée
+        faible, et ne compte PAS — et la projection dit qu'elle est donc optimiste."""
+        with tempfile.TemporaryDirectory() as d:
+            store, compte = self._monte(Path(d))
+            e = read.echeances(None, store, compte)
+            annuelle = [x for x in e["echeances"] if "fonciere" in x["libelle"].lower()]
+            self.assertEqual(len(annuelle), 1, "la taxe foncière doit être détectée")
+            self.assertEqual(annuelle[0]["confidence"], "faible")
+            self.assertEqual(annuelle[0]["occurrences"], 2)
+
+            p = read.projection(None, store, compte, jours=400, plancher=300)
+            libelles = " ".join(m["libelle"].lower() for m in p["mouvements"])
+            self.assertNotIn("fonciere", libelles)
+            self.assertGreaterEqual(p["echeances_ignorees_car_incertaines"], 1)
+
+    def test_rien_n_est_ecrit_hors_du_magasin_qu_on_lui_donne(self):
+        """Une ligne inventée qui se glisserait dans un vrai registre y resterait pour de
+        bon, et fausserait des projections auxquelles quelqu'un fait confiance."""
+        with tempfile.TemporaryDirectory() as d:
+            racine = Path(d)
+            store, compte = self._monte(racine)
+            ecrits = {chemin for chemin in racine.rglob("*") if chemin.is_file()}
+            self.assertTrue(ecrits, "la démonstration doit bien écrire quelque chose")
+            self.assertTrue(store.ledger_path(compte).exists())
+            for chemin in ecrits:
+                self.assertTrue(chemin.is_relative_to(racine))
+
+    def test_le_salaire_est_compte_dans_l_autre_sens(self):
+        """Projeter les seules sorties donnerait une courbe qui plonge toujours, donc une
+        alarme tous les jours, donc plus personne qui lit le brief en semaine deux."""
+        with tempfile.TemporaryDirectory() as d:
+            store, compte = self._monte(Path(d))
+            e = read.echeances(None, store, compte)
+            salaire = [x for x in e["echeances"] if x["montant"] > 0]
+            self.assertTrue(salaire, "le salaire doit être détecté comme une rentrée")
+            self.assertEqual(salaire[0]["sens"], "rentree")
 
 
 if __name__ == "__main__":

@@ -38,6 +38,31 @@ Same discipline on predictions: a charge seen twice is a coincidence, not a recu
 It ships as `confidence: "faible"` and stays out of the projection. Three regular
 occurrences make a fact.
 
+## See what it does, right now
+
+```bash
+./bankread demo
+```
+
+An invented account, 400 days of fabricated history, an imaginary balance — and the
+**real** detection and projection running on top. Nothing is written outside a temp
+directory.
+
+```
+    2026-08-23 ±3j    -890.00  →     394.55   Rent …           [loyer]
+    2026-08-25 ±3j    -412.00  →     -17.45   Tax …            [impots]
+    2026-08-29 ±3j    2450.00  →    2432.55   Salary …
+
+  ⚠ drops below 300 € on 2026-08-25 (-17.45 €), pushed by « Dgfip Impot Revenu »
+    (1 uncertain pattern not counted — the real trajectory may be lower)
+```
+
+Rent still leaves you above the floor; **the tax debit is what pushes you under**, five
+days before payday. Your bank will mention it on the morning of the 25th. And the last
+line matters most: the annual property tax was only seen twice in the history, so it is
+not believed, so it does not count — and the projection says it is therefore optimistic
+rather than pretending otherwise.
+
 ## Install, or don't
 
 ```bash

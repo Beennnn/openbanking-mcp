@@ -10,6 +10,7 @@
   bankread upcoming             les échéances détectées et leur prochain passage
   bankread project [--days 45] [--floor 0]
                                 solde d'aujourd'hui MOINS ce qui va tomber
+  bankread demo                 voir ce que ça donne sur un compte FICTIF, sans banque
   bankread mcp                  serveur MCP sur stdio (pour Claude)
 
 Codes de sortie : 0 tout va bien, 1 il y a quelque chose à regarder, 2 échec dur.
@@ -24,6 +25,7 @@ import argparse
 import http.server
 import json
 import sys
+import tempfile
 import threading
 import urllib.parse
 import uuid
@@ -31,7 +33,7 @@ import webbrowser
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from . import mcp, read
+from . import demo, mcp, read
 from .enablebanking import MAX_CONSENT_DAYS as EB_MAX_CONSENT_DAYS
 from .erreurs import ApiError
 from .gocardless import MAX_CONSENT_DAYS
@@ -569,6 +571,15 @@ def cmd_upcoming(args) -> int:
 
 def cmd_project(args) -> int:
     p = read.projection(_api(), _store(), args.account, jours=args.days, plancher=args.floor)
+    return _afficher_projection(p, args.floor)
+
+
+def _afficher_projection(p: dict, plancher: float) -> int:
+    """L'affichage, partagé par `project` et `demo` — même code, mêmes chiffres.
+
+    Si la démonstration avait son propre affichage, elle montrerait autre chose que
+    l'outil. Ce serait une brochure, pas un essai.
+    """
     if p.get("etat") == "inconnu":
         print(f"  ? pas de projection — {p.get('souci')}")
         return 1
@@ -587,15 +598,53 @@ def cmd_project(args) -> int:
     print()
     if p["franchissement"]:
         f = p["franchissement"]
-        print(f"  ⚠ passe sous {args.floor:.0f} € le {f['date']} "
+        print(f"  ⚠ passe sous {plancher:.0f} € le {f['date']} "
               f"({f['solde']:.2f} €), poussé par « {f['declencheur']} »")
     else:
-        print(f"  ✔ reste au-dessus de {args.floor:.0f} € sur {p['fenetre_jours']} j "
+        print(f"  ✔ reste au-dessus de {plancher:.0f} € sur {p['fenetre_jours']} j "
               f"(point bas {p['point_bas']['solde']:.2f} € le {p['point_bas']['date']})")
     if p.get("echeances_ignorees_car_incertaines"):
         print(f"    ({p['echeances_ignorees_car_incertaines']} motif(s) incertain(s) "
               f"non comptés — la vraie trajectoire peut être plus basse)")
     return 1 if p["franchissement"] else 0
+
+
+def cmd_demo(args) -> int:
+    """Voir ce que fait l'outil sans avoir de banque branchée.
+
+    Tout est faux SAUF le calcul : le compte, les 400 jours d'historique et le solde sont
+    fabriqués, mais la détection d'échéances et la projection qui tournent dessus sont
+    exactement celles d'un vrai compte. C'est une démonstration qui est aussi un essai.
+
+    Le magasin est un dossier temporaire, supprimé en sortant : rien de tout ceci ne peut
+    atterrir dans le vrai registre, où une ligne inventée resterait pour de bon.
+    """
+    with tempfile.TemporaryDirectory(prefix="bankread-demo-") as tmp:
+        racine = Path(tmp)
+        store = Store(config_dir=racine / "config", cache_dir=racine / "cache",
+                      data_dir=racine / "data")
+        compte = demo.monter(store)
+
+        print("  ┌─ DONNÉES FICTIVES ─────────────────────────────────────────────┐")
+        print("  │ Compte inventé, historique fabriqué, solde imaginaire.         │")
+        print("  │ Seuls la détection et le calcul sont réels.                    │")
+        print("  └────────────────────────────────────────────────────────────────┘")
+        print()
+
+        e = read.echeances(None, store, compte)
+        print(f"  Échéances retrouvées dans {e.get('historique_jours', 0)} j d'historique :")
+        for ech in e.get("echeances", []):
+            sur = "" if ech["confidence"] != "faible" else "   ← vue 2 fois : pas crue"
+            print(f"    {ech['prochaine']}  {ech['montant']:>9.2f}  "
+                  f"{ech['libelle'][:34].ljust(34)}{ech['cadence'][:13].ljust(13)}{sur}")
+        print()
+
+        p = read.projection(None, store, compte, jours=args.days, plancher=args.floor)
+        code = _afficher_projection(p, args.floor)
+        print()
+        print("  C'est la soustraction que personne d'autre ne fait : ta banque ne connaît")
+        print("  pas tes impôts, et les impôts ne connaissent pas ton solde.")
+        return code
 
 
 def cmd_json(args) -> int:
@@ -662,6 +711,11 @@ def main(argv=None) -> int:
     s.add_argument("--days", type=int, default=45)
     s.add_argument("--floor", type=float, default=0.0)
     s.set_defaults(func=cmd_project)
+
+    s = sub.add_parser("demo", help="voir ce que ça donne, sur un compte fictif")
+    s.add_argument("--days", type=int, default=45)
+    s.add_argument("--floor", type=float, default=300.0)
+    s.set_defaults(func=cmd_demo)
 
     s = sub.add_parser("json", help="tout en JSON (pour le brief)")
     s.add_argument("--days", type=int, default=45)
