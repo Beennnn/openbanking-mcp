@@ -1,5 +1,10 @@
 # `openbanking-mcp` — lire ses comptes, et prévenir AVANT
 
+[![tests](https://github.com/Beennnn/openbanking-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/Beennnn/openbanking-mcp/actions/workflows/tests.yml)
+[![licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+[![python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![zéro dépendance](https://img.shields.io/badge/d%C3%A9pendances-0-blue.svg)](pyproject.toml)
+
 > **Le dépôt s'appelle `openbanking-mcp`, la commande s'appelle `bankread`.** Ce n'est
 > pas une inattention : le nom du dépôt dit ce que c'est — un serveur MCP au-dessus de
 > l'Open Banking — parce que c'est comme ça qu'on le trouve. Le nom de la commande dit ce
@@ -74,6 +79,21 @@ Trois conséquences pratiques :
 
 ## Mise en route
 
+### L'installer, ou pas
+
+Trois façons, dans l'ordre de l'engagement qu'elles demandent :
+
+```bash
+git clone https://github.com/Beennnn/openbanking-mcp && cd openbanking-mcp && ./bankread doctor
+uvx --from git+https://github.com/Beennnn/openbanking-mcp bankread doctor   # sans rien installer
+pipx install git+https://github.com/Beennnn/openbanking-mcp                 # à demeure
+```
+
+Le clone en premier, et pas par habitude : un outil qui lit des comptes bancaires se lit
+avant de s'installer. `./bankread` marche depuis le clone, sans rien installer du tout.
+
+### Puis, dans l'ordre
+
 ```bash
 # 0. créer l'application chez le fournisseur : https://enablebanking.com/sign-in/
 #    Control Panel → API applications → environnement « Production », clé générée.
@@ -146,6 +166,19 @@ et les scripts appelants s'y retrouvent.
 
 ```bash
 claude mcp add bankread -s user -- "$PWD/bankread" mcp
+```
+
+Ou sans clone du tout, comme se distribue n'importe quel serveur MCP :
+
+```json
+{
+  "mcpServers": {
+    "bankread": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Beennnn/openbanking-mcp", "bankread", "mcp"]
+    }
+  }
+}
 ```
 
 MCP est un protocole ouvert et `bankreadlib/mcp.py` est du JSON-RPC écrit à la main :

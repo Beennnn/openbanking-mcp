@@ -1,5 +1,10 @@
 # `openbanking-mcp` — read your accounts, and warn you BEFORE the debit lands
 
+[![tests](https://github.com/Beennnn/openbanking-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/Beennnn/openbanking-mcp/actions/workflows/tests.yml)
+[![licence MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+[![python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![zéro dépendance](https://img.shields.io/badge/d%C3%A9pendances-0-blue.svg)](pyproject.toml)
+
 > **The repo is `openbanking-mcp`, the command is `bankread`.** The repo name says what
 > this is — an MCP server on top of Open Banking — because that is how people find it.
 > The command name says what you do with it, and `bankread doctor` types better than
@@ -33,6 +38,17 @@ Same discipline on predictions: a charge seen twice is a coincidence, not a recu
 It ships as `confidence: "faible"` and stays out of the projection. Three regular
 occurrences make a fact.
 
+## Install, or don't
+
+```bash
+git clone https://github.com/Beennnn/openbanking-mcp && cd openbanking-mcp && ./bankread doctor
+uvx --from git+https://github.com/Beennnn/openbanking-mcp bankread doctor   # nothing installed
+pipx install git+https://github.com/Beennnn/openbanking-mcp                 # for good
+```
+
+The clone comes first on purpose: a tool that reads bank accounts gets read before it
+gets installed. `./bankread` works straight out of a clone, with nothing installed at all.
+
 ## Getting started
 
 1. **Create an Enable Banking application** — <https://enablebanking.com/sign-in/>.
@@ -57,6 +73,19 @@ hour after consent is signed, after which most banks fall back to a rolling 90 d
 ```
 
 For Claude Code: `claude mcp add bankread -s user -- /path/to/bankread mcp`.
+
+Or with no clone at all, the way MCP servers usually ship:
+
+```json
+{
+  "mcpServers": {
+    "bankread": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Beennnn/openbanking-mcp", "bankread", "mcp"]
+    }
+  }
+}
+```
 
 MCP is an open protocol and the server is hand-written JSON-RPC: no vendor library, no
 token, no outbound call. Anything that is not MCP can read `bankread json` instead. And
